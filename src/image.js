@@ -1,22 +1,28 @@
 const s3 = require("./s3");
-const {successResponse, errorResponse} = require("../src/response");
+const {successResponse, errorResponse} = require("./response");
 const im = require('imagemagick');
 const fs = require('fs');
 const os = require('os');
+const path = require('path');
 
-const getFile = (imageBucket, objectKey, reject) => s3.getFileFromBucket(imageBucket, objectKey).catch(err => reject(errorResponse(err.code, 404, err)));
+const getFile = (imageBucket, objectKey, reject) => s3.getFileFromBucket(imageBucket, objectKey).catch(err => {
+    reject(errorResponse(err.code, 404, err));
+});
 
 
 exports.original = (imageBucket, objectKey) => new Promise((resolve, reject) =>
 
-    getFile(imageBucket, objectKey, reject).then(data => resolve(successResponse(data.Body.toString('base64'), 'image/jpeg'))));
+    getFile(imageBucket, objectKey, reject)
+        .then(data => resolve(successResponse(data.Body.toString('base64'), 'image/jpeg'))));
 
 exports.resize = (imageBucket, objectKey, width, height) => new Promise((resolve, reject) =>
 
     getFile(imageBucket, objectKey, reject).then(data => {
 
-        const normalizeObjectKey = objectKey.split('/').join('.');
-        const resizedFile = `${os.tmpDir}/resized.${imageBucket}.${normalizeObjectKey}.${width}.${height}`;
+        let objectKeyClean =  (new Date()).getTime()
+
+        const resizedFile = `${os.tmpDir}/resized.${imageBucket}.${objectKeyClean}.${width}.${height}`;
+        //const resizedFile = `${os.tmpDir}/resized.${imageBucket}.${width}.${height}`;
 
         const resizeCallback = (err, output, resolve, reject) => {
             if (err) {
